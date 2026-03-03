@@ -1,0 +1,143 @@
+import UIKit
+
+final class ContainerViewController: UIViewController {
+
+    private var currentChild: UIViewController?
+    private let customNavBar = UIView()
+    private let navTitleLabel = UILabel()
+    private let backButton = UIButton(type: .system)
+    private let containerView = UIView()
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .systemBackground
+        setupCustomNavBar()
+        setupContainerView()
+        showList(animated: false)
+    }
+
+    private func setupCustomNavBar() {
+        customNavBar.translatesAutoresizingMaskIntoConstraints = false
+        customNavBar.backgroundColor = .systemBackground
+        view.addSubview(customNavBar)
+
+        let separator = UIView()
+        separator.translatesAutoresizingMaskIntoConstraints = false
+        separator.backgroundColor = .separator
+        customNavBar.addSubview(separator)
+
+        backButton.translatesAutoresizingMaskIntoConstraints = false
+        backButton.setImage(UIImage(systemName: "chevron.left"), for: .normal)
+        backButton.setTitle(" 뒤로", for: .normal)
+        backButton.addTarget(self, action: #selector(backButtonTapped), for: .touchUpInside)
+        backButton.isHidden = true
+        customNavBar.addSubview(backButton)
+
+        navTitleLabel.translatesAutoresizingMaskIntoConstraints = false
+        navTitleLabel.font = .systemFont(ofSize: 17, weight: .semibold)
+        navTitleLabel.textAlignment = .center
+        customNavBar.addSubview(navTitleLabel)
+
+        NSLayoutConstraint.activate([
+            customNavBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            customNavBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            customNavBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            customNavBar.heightAnchor.constraint(equalToConstant: 44),
+
+            separator.leadingAnchor.constraint(equalTo: customNavBar.leadingAnchor),
+            separator.trailingAnchor.constraint(equalTo: customNavBar.trailingAnchor),
+            separator.bottomAnchor.constraint(equalTo: customNavBar.bottomAnchor),
+            separator.heightAnchor.constraint(equalToConstant: 0.5),
+
+            backButton.leadingAnchor.constraint(equalTo: customNavBar.leadingAnchor, constant: 8),
+            backButton.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
+
+            navTitleLabel.centerXAnchor.constraint(equalTo: customNavBar.centerXAnchor),
+            navTitleLabel.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
+            navTitleLabel.leadingAnchor.constraint(greaterThanOrEqualTo: backButton.trailingAnchor, constant: 8),
+            navTitleLabel.trailingAnchor.constraint(lessThanOrEqualTo: customNavBar.trailingAnchor, constant: -60)
+        ])
+    }
+
+    private func setupContainerView() {
+        containerView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(containerView)
+
+        NSLayoutConstraint.activate([
+            containerView.topAnchor.constraint(equalTo: customNavBar.bottomAnchor),
+            containerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            containerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            containerView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+    }
+
+    private func transition(to newChild: UIViewController, forward: Bool, animated: Bool) {
+        let oldChild = currentChild
+
+        addChild(newChild)
+        newChild.view.frame = containerView.bounds
+
+        if animated, let oldView = oldChild?.view {
+            let offsetX = forward ? containerView.bounds.width : -containerView.bounds.width
+            newChild.view.frame.origin.x = offsetX
+            containerView.addSubview(newChild.view)
+
+            UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
+                newChild.view.frame.origin.x = 0
+                oldView.frame.origin.x = forward ? -self.containerView.bounds.width : self.containerView.bounds.width
+            } completion: { _ in
+                oldChild?.willMove(toParent: nil)
+                oldChild?.view.removeFromSuperview()
+                oldChild?.removeFromParent()
+                newChild.didMove(toParent: self)
+            }
+        } else {
+            containerView.addSubview(newChild.view)
+            oldChild?.willMove(toParent: nil)
+            oldChild?.view.removeFromSuperview()
+            oldChild?.removeFromParent()
+            newChild.didMove(toParent: self)
+        }
+
+        currentChild = newChild
+    }
+
+    private func showList(animated: Bool) {
+        navTitleLabel.text = "UIKit 단일 화면"
+        backButton.isHidden = true
+        let listVC = SinglePostListVC()
+        listVC.delegate = self
+        transition(to: listVC, forward: false, animated: animated)
+    }
+
+    @objc private func backButtonTapped() {
+        showList(animated: true)
+    }
+}
+
+// MARK: - ContainerNavigationDelegate
+extension ContainerViewController: ContainerNavigationDelegate {
+    func navigateToDetail(postId: Int) {
+        navTitleLabel.text = "게시글 상세"
+        backButton.isHidden = false
+        let detailVC = SinglePostDetailVC(postId: postId)
+        detailVC.delegate = self
+        transition(to: detailVC, forward: true, animated: true)
+    }
+
+    func navigateToCreate() {
+        navTitleLabel.text = "게시글 작성"
+        backButton.isHidden = false
+        let createVC = SinglePostCreateVC()
+        createVC.delegate = self
+        transition(to: createVC, forward: true, animated: true)
+    }
+
+    func navigateBack() {
+        showList(animated: true)
+    }
+
+    func refreshList() {
+        showList(animated: true)
+    }
+}
