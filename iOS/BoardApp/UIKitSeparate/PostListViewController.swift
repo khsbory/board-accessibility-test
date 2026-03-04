@@ -82,10 +82,10 @@ final class PostListViewController: UIViewController {
                     let indexPath = IndexPath(row: idx, section: 0)
                     self.tableView.scrollToRow(at: indexPath, at: .middle, animated: false)
                     if let cell = self.tableView.cellForRow(at: indexPath) {
-                        UIAccessibility.post(notification: .layoutChanged, argument: cell)
+                        UIAccessibility.post(notification: .screenChanged, argument: cell)
                     }
                 } else {
-                    UIAccessibility.post(notification: .layoutChanged, argument: self.createButton)
+                    UIAccessibility.post(notification: .screenChanged, argument: self.createButton)
                 }
             } else {
                 // 삭제 안 된 경우: id로 현재 인덱스 찾기
@@ -93,7 +93,7 @@ final class PostListViewController: UIViewController {
                     let indexPath = IndexPath(row: idx, section: 0)
                     self.tableView.scrollToRow(at: indexPath, at: .middle, animated: false)
                     if let cell = self.tableView.cellForRow(at: indexPath) {
-                        UIAccessibility.post(notification: .layoutChanged, argument: cell)
+                        UIAccessibility.post(notification: .screenChanged, argument: cell)
                     }
                 }
                 // 못 찾으면 (페이지네이션 리셋 등) 조용히 스킵

@@ -32,6 +32,15 @@ final class PostDetailViewController: UIViewController {
         loadPost()
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            guard let self = self else { return }
+            UIAccessibility.post(notification: .screenChanged, argument: self.titleLabel)
+        }
+    }
+
     private func setupUI() {
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(scrollView)

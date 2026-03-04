@@ -168,11 +168,11 @@ final class ContainerViewController: UIViewController {
                     let indexPath = IndexPath(row: idx, section: 0)
                     listVC.tableView.scrollToRow(at: indexPath, at: .middle, animated: false)
                     if let cell = listVC.tableView.cellForRow(at: indexPath) {
-                        UIAccessibility.post(notification: .layoutChanged, argument: cell)
+                        UIAccessibility.post(notification: .screenChanged, argument: cell)
                     }
                 } else {
                     // 게시글이 없으면 작성 버튼으로 초점
-                    UIAccessibility.post(notification: .layoutChanged, argument: listVC.createButton)
+                    UIAccessibility.post(notification: .screenChanged, argument: listVC.createButton)
                 }
             } else {
                 // 삭제 안 된 경우: id로 현재 인덱스 찾기
@@ -180,7 +180,7 @@ final class ContainerViewController: UIViewController {
                     let indexPath = IndexPath(row: idx, section: 0)
                     listVC.tableView.scrollToRow(at: indexPath, at: .middle, animated: false)
                     if let cell = listVC.tableView.cellForRow(at: indexPath) {
-                        UIAccessibility.post(notification: .layoutChanged, argument: cell)
+                        UIAccessibility.post(notification: .screenChanged, argument: cell)
                     }
                 }
                 // 못 찾으면 (페이지네이션 리셋 등) 조용히 스킵
