@@ -3,10 +3,14 @@ import UIKit
 final class ContainerViewController: UIViewController {
 
     private var currentChild: UIViewController?
+    private var listVC: SinglePostListVC?
     private let customNavBar = UIView()
     private let navTitleLabel = UILabel()
     private let backButton = UIButton(type: .system)
+    private let homeButton = UIButton(type: .system)
     private let containerView = UIView()
+
+    var onDismiss: (() -> Void)?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -25,6 +29,14 @@ final class ContainerViewController: UIViewController {
         separator.translatesAutoresizingMaskIntoConstraints = false
         separator.backgroundColor = .separator
         customNavBar.addSubview(separator)
+
+        homeButton.translatesAutoresizingMaskIntoConstraints = false
+        homeButton.setImage(UIImage(systemName: "chevron.left"), for: .normal)
+        homeButton.setTitle(" 홈", for: .normal)
+        homeButton.addTarget(self, action: #selector(homeButtonTapped), for: .touchUpInside)
+        homeButton.accessibilityLabel = "홈으로 돌아가기"
+        homeButton.isHidden = true
+        customNavBar.addSubview(homeButton)
 
         backButton.translatesAutoresizingMaskIntoConstraints = false
         backButton.setImage(UIImage(systemName: "chevron.left"), for: .normal)
@@ -48,6 +60,9 @@ final class ContainerViewController: UIViewController {
             separator.trailingAnchor.constraint(equalTo: customNavBar.trailingAnchor),
             separator.bottomAnchor.constraint(equalTo: customNavBar.bottomAnchor),
             separator.heightAnchor.constraint(equalToConstant: 0.5),
+
+            homeButton.leadingAnchor.constraint(equalTo: customNavBar.leadingAnchor, constant: 8),
+            homeButton.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
 
             backButton.leadingAnchor.constraint(equalTo: customNavBar.leadingAnchor, constant: 8),
             backButton.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
@@ -105,13 +120,22 @@ final class ContainerViewController: UIViewController {
     private func showList(animated: Bool) {
         navTitleLabel.text = "UIKit 단일 화면"
         backButton.isHidden = true
-        let listVC = SinglePostListVC()
-        listVC.delegate = self
-        transition(to: listVC, forward: false, animated: animated)
+        homeButton.isHidden = false
+
+        if listVC == nil {
+            let vc = SinglePostListVC()
+            vc.delegate = self
+            listVC = vc
+        }
+        transition(to: listVC!, forward: false, animated: animated)
     }
 
     @objc private func backButtonTapped() {
         showList(animated: true)
+    }
+
+    @objc private func homeButtonTapped() {
+        onDismiss?()
     }
 }
 
@@ -119,6 +143,7 @@ final class ContainerViewController: UIViewController {
 extension ContainerViewController: ContainerNavigationDelegate {
     func navigateToDetail(postId: Int) {
         navTitleLabel.text = "게시글 상세"
+        homeButton.isHidden = true
         backButton.isHidden = false
         let detailVC = SinglePostDetailVC(postId: postId)
         detailVC.delegate = self
@@ -127,6 +152,7 @@ extension ContainerViewController: ContainerNavigationDelegate {
 
     func navigateToCreate() {
         navTitleLabel.text = "게시글 작성"
+        homeButton.isHidden = true
         backButton.isHidden = false
         let createVC = SinglePostCreateVC()
         createVC.delegate = self
@@ -138,6 +164,7 @@ extension ContainerViewController: ContainerNavigationDelegate {
     }
 
     func refreshList() {
+        listVC?.reloadData()
         showList(animated: true)
     }
 }

@@ -12,6 +12,8 @@ final class PostListViewController: UIViewController {
     private var hasNextPage = false
     private var isLoading = false
 
+    var onDismiss: (() -> Void)?
+
     init(apiService: APIServiceProtocol = APIService.shared) {
         self.apiService = apiService
         super.init(nibName: nil, bundle: nil)
@@ -25,10 +27,25 @@ final class PostListViewController: UIViewController {
         super.viewDidLoad()
         title = "UIKit 독립 화면"
         view.backgroundColor = .systemBackground
+        setupHomeButton()
         setupTableView()
         setupCreateButton()
         setupActivityIndicator()
-        loadPosts()
+    }
+
+    private func setupHomeButton() {
+        navigationItem.leftBarButtonItem = UIBarButtonItem(
+            image: UIImage(systemName: "chevron.left"),
+            style: .plain,
+            target: self,
+            action: #selector(dismissToHome)
+        )
+        navigationItem.leftBarButtonItem?.title = "홈"
+        navigationItem.leftBarButtonItem?.accessibilityLabel = "홈으로 돌아가기"
+    }
+
+    @objc private func dismissToHome() {
+        onDismiss?()
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -40,8 +57,13 @@ final class PostListViewController: UIViewController {
         tableView.translatesAutoresizingMaskIntoConstraints = false
         tableView.dataSource = self
         tableView.delegate = self
+        tableView.prefetchDataSource = self
         tableView.register(PostCell.self, forCellReuseIdentifier: PostCell.reuseIdentifier)
         view.addSubview(tableView)
+
+        let refreshControl = UIRefreshControl()
+        refreshControl.addTarget(self, action: #selector(handlePullToRefresh), for: .valueChanged)
+        tableView.refreshControl = refreshControl
 
         NSLayoutConstraint.activate([
             tableView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
@@ -93,14 +115,30 @@ final class PostListViewController: UIViewController {
                     self.hasNextPage = response.pagination.hasNext
                     self.tableView.reloadData()
                     self.activityIndicator.stopAnimating()
+                    self.tableView.refreshControl?.endRefreshing()
                     self.isLoading = false
+                    self.loadMoreIfNeeded()
                 }
             } catch {
                 await MainActor.run {
                     self.activityIndicator.stopAnimating()
+                    self.tableView.refreshControl?.endRefreshing()
                     self.isLoading = false
                     self.showError(error)
                 }
+            }
+        }
+    }
+
+    /// Auto-load next page if content does not fill the visible area
+    private func loadMoreIfNeeded() {
+        guard hasNextPage, !isLoading else { return }
+        // After layout, check if content is shorter than the visible table height
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            if self.tableView.contentSize.height <= self.tableView.frame.height {
+                self.currentPage += 1
+                self.loadPosts()
             }
         }
     }
@@ -115,6 +153,10 @@ final class PostListViewController: UIViewController {
         let alert = UIAlertController(title: "오류", message: error.localizedDescription, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "확인", style: .default))
         present(alert, animated: true)
+    }
+
+    @objc private func handlePullToRefresh() {
+        refreshPosts()
     }
 
     @objc private func createButtonTapped() {
@@ -158,9 +200,25 @@ extension PostListViewController: UITableViewDelegate {
         let contentHeight = scrollView.contentSize.height
         let height = scrollView.frame.size.height
 
-        if offsetY > contentHeight - height - 100, hasNextPage, !isLoading {
+        // Trigger when user scrolls within 200pt of the bottom
+        guard contentHeight > height else { return }
+        if offsetY > contentHeight - height - 200, hasNextPage, !isLoading {
             currentPage += 1
             loadPosts()
+        }
+    }
+}
+
+// MARK: - UITableViewDataSourcePrefetching
+extension PostListViewController: UITableViewDataSourcePrefetching {
+    func tableView(_ tableView: UITableView, prefetchRowsAt indexPaths: [IndexPath]) {
+        // Trigger pagination when prefetching rows near the end
+        guard hasNextPage, !isLoading else { return }
+        let threshold = max(posts.count - 3, 0)
+        for indexPath in indexPaths where indexPath.row >= threshold {
+            currentPage += 1
+            loadPosts()
+            break
         }
     }
 }

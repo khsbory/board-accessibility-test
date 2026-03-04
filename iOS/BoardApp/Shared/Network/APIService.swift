@@ -17,8 +17,29 @@ final class APIService: APIServiceProtocol {
     init(session: URLSession = .shared) {
         self.session = session
         self.decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-        decoder.dateDecodingStrategy = .iso8601
+        // API already returns camelCase keys (createdAt, totalPages), no snake_case conversion needed
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let dateString = try container.decode(String.self)
+
+            // Try ISO 8601 with fractional seconds first (e.g., "2026-03-02T04:22:49.004Z")
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let date = formatter.date(from: dateString) {
+                return date
+            }
+
+            // Fallback to ISO 8601 without fractional seconds
+            formatter.formatOptions = [.withInternetDateTime]
+            if let date = formatter.date(from: dateString) {
+                return date
+            }
+
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Cannot decode date: \(dateString)"
+            )
+        }
     }
 
     func fetchPosts(page: Int = 1, limit: Int = 10) async throws -> PostListResponse {
@@ -69,6 +90,7 @@ final class APIService: APIServiceProtocol {
         } catch let error as APIError {
             throw error
         } catch let error as DecodingError {
+            print("[APIService] Decoding error in createPost: \(error)")
             throw APIError.decodingError(error)
         } catch {
             throw APIError.networkError(error)
@@ -115,6 +137,11 @@ final class APIService: APIServiceProtocol {
         } catch let error as APIError {
             throw error
         } catch let error as DecodingError {
+            print("[APIService] Decoding error for \(T.self): \(error)")
+            if let data = try? await session.data(from: url).0,
+               let jsonString = String(data: data, encoding: .utf8) {
+                print("[APIService] Raw JSON: \(jsonString.prefix(500))")
+            }
             throw APIError.decodingError(error)
         } catch {
             throw APIError.networkError(error)

@@ -28,10 +28,21 @@ struct SinglePostListContent: View {
                 }
             }
             .listStyle(.plain)
+            .refreshable {
+                await viewModel.refreshPosts()
+            }
 
             if viewModel.isLoading && viewModel.posts.isEmpty {
                 ProgressView()
             }
+        }
+        .alert("오류", isPresented: .init(
+            get: { viewModel.errorMessage != nil },
+            set: { if !$0 { viewModel.errorMessage = nil } }
+        )) {
+            Button("확인") { viewModel.errorMessage = nil }
+        } message: {
+            Text(viewModel.errorMessage ?? "")
         }
         .safeAreaInset(edge: .bottom) {
             Button("게시글 작성") {
@@ -45,14 +56,6 @@ struct SinglePostListContent: View {
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .padding(.horizontal, 16)
             .padding(.bottom, 8)
-        }
-        .alert("오류", isPresented: .init(
-            get: { viewModel.errorMessage != nil },
-            set: { if !$0 { viewModel.errorMessage = nil } }
-        )) {
-            Button("확인") { viewModel.errorMessage = nil }
-        } message: {
-            Text(viewModel.errorMessage ?? "")
         }
     }
 }

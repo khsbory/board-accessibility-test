@@ -2,7 +2,7 @@ import SwiftUI
 
 struct SeparatePostCreateView: View {
     let viewModel: SeparateViewModel
-    @Binding var path: NavigationPath
+    @Environment(\.dismiss) private var dismiss
 
     @State private var title = ""
     @State private var content = ""
@@ -69,7 +69,7 @@ struct SeparatePostCreateView: View {
             do {
                 try await viewModel.createPost(title: title, content: content)
                 await viewModel.refreshPosts()
-                path = NavigationPath()
+                dismiss()
             } catch {
                 errorMessage = error.localizedDescription
                 isSubmitting = false

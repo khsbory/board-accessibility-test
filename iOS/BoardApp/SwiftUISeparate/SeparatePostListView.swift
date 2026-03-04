@@ -2,15 +2,13 @@ import SwiftUI
 
 struct SeparatePostListView: View {
     let viewModel: SeparateViewModel
-    @Binding var path: NavigationPath
+    var onDismiss: (() -> Void)?
 
     var body: some View {
         ZStack {
             List {
                 ForEach(viewModel.posts) { post in
-                    Button {
-                        path.append(SeparateRoute.detail(post.id))
-                    } label: {
+                    NavigationLink(value: AppRoute.separateDetail(post.id)) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(post.title)
                                 .font(.body)
@@ -38,22 +36,35 @@ struct SeparatePostListView: View {
             }
         }
         .navigationTitle("SwiftUI 독립 화면")
-        .safeAreaInset(edge: .bottom) {
-            Button("게시글 작성") {
-                path.append(SeparateRoute.create)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button {
+                    onDismiss?()
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                        Text("홈")
+                    }
+                }
+                .accessibilityLabel("홈으로 돌아가기")
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .background(.blue)
-            .foregroundStyle(.white)
-            .fontWeight(.semibold)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .padding(.horizontal, 16)
-            .padding(.bottom, 8)
+        }
+        .safeAreaInset(edge: .bottom) {
+            NavigationLink(value: AppRoute.separateCreate) {
+                Text("게시글 작성")
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(.blue)
+                    .foregroundStyle(.white)
+                    .fontWeight(.semibold)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 8)
+            }
         }
         .task {
             if viewModel.posts.isEmpty {
-                await viewModel.loadPosts()
+                await viewModel.loadInitialPages()
             }
         }
         .alert("오류", isPresented: .init(

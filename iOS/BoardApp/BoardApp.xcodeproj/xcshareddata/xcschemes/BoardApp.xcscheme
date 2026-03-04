@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
    LastUpgradeVersion = "1500"
-   version = "1.7">
+   version = "1.3">
    <BuildAction
       parallelizeBuildables = "YES"
-      buildImplicitDependencies = "YES"
-      runPostActionsOnFailure = "NO">
+      buildImplicitDependencies = "YES">
       <BuildActionEntries>
          <BuildActionEntry
             buildForTesting = "YES"
@@ -16,7 +15,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "D4B449A698759CF463A0E0A4"
-               BuildableName = "BoardApp.app"
+               BuildableName = "&#x1100;&#x1166;&#x1109;&#x1175;&#x1111;&#x1161;&#x11ab; &#x110c;&#x1165;&#x11b8;&#x1100;&#x1173;&#x11ab;&#x1109;&#x1165;&#x11bc; &#x1110;&#x1166;&#x1109;&#x1173;&#x1110;&#x1173;.app"
                BlueprintName = "BoardApp"
                ReferencedContainer = "container:BoardApp.xcodeproj">
             </BuildableReference>
@@ -55,13 +54,12 @@
       buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
-      shouldUseLaunchSchemeArgsEnv = "YES"
-      onlyGenerateCoverageForSpecifiedTargets = "NO">
+      shouldUseLaunchSchemeArgsEnv = "YES">
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "D4B449A698759CF463A0E0A4"
-            BuildableName = "BoardApp.app"
+            BuildableName = "&#x1100;&#x1166;&#x1109;&#x1175;&#x1111;&#x1161;&#x11ab; &#x110c;&#x1165;&#x11b8;&#x1100;&#x1173;&#x11ab;&#x1109;&#x1165;&#x11bc; &#x1110;&#x1166;&#x1109;&#x1173;&#x1110;&#x1173;.app"
             BlueprintName = "BoardApp"
             ReferencedContainer = "container:BoardApp.xcodeproj">
          </BuildableReference>
@@ -79,8 +77,7 @@
             </BuildableReference>
          </TestableReference>
          <TestableReference
-            skipped = "NO"
-            parallelizable = "NO">
+            skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "296B982371C0F621A34C01CA"
@@ -90,8 +87,6 @@
             </BuildableReference>
          </TestableReference>
       </Testables>
-      <CommandLineArguments>
-      </CommandLineArguments>
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"
@@ -108,7 +103,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "D4B449A698759CF463A0E0A4"
-            BuildableName = "BoardApp.app"
+            BuildableName = "&#x1100;&#x1166;&#x1109;&#x1175;&#x1111;&#x1161;&#x11ab; &#x110c;&#x1165;&#x11b8;&#x1100;&#x1173;&#x11ab;&#x1109;&#x1165;&#x11bc; &#x1110;&#x1166;&#x1109;&#x1173;&#x1110;&#x1173;.app"
             BlueprintName = "BoardApp"
             ReferencedContainer = "container:BoardApp.xcodeproj">
          </BuildableReference>
@@ -125,7 +120,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "D4B449A698759CF463A0E0A4"
-            BuildableName = "BoardApp.app"
+            BuildableName = "&#x1100;&#x1166;&#x1109;&#x1175;&#x1111;&#x1161;&#x11ab; &#x110c;&#x1165;&#x11b8;&#x1100;&#x1173;&#x11ab;&#x1109;&#x1165;&#x11bc; &#x1110;&#x1166;&#x1109;&#x1173;&#x1110;&#x1173;.app"
             BlueprintName = "BoardApp"
             ReferencedContainer = "container:BoardApp.xcodeproj">
          </BuildableReference>

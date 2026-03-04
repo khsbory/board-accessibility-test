@@ -54,10 +54,8 @@ final class PostModelTests: XCTestCase {
             "pagination": {
                 "page": 1,
                 "limit": 10,
-                "total_items": 2,
-                "total_pages": 1,
-                "has_next": false,
-                "has_prev": false
+                "total": 2,
+                "total_pages": 1
             }
         }
         """.data(using: .utf8)!
@@ -68,7 +66,7 @@ final class PostModelTests: XCTestCase {
         XCTAssertEqual(response.data[0].title, "첫번째 글")
         XCTAssertEqual(response.data[1].title, "두번째 글")
         XCTAssertEqual(response.pagination.page, 1)
-        XCTAssertEqual(response.pagination.totalItems, 2)
+        XCTAssertEqual(response.pagination.total, 2)
         XCTAssertEqual(response.pagination.totalPages, 1)
         XCTAssertFalse(response.pagination.hasNext)
         XCTAssertFalse(response.pagination.hasPrev)

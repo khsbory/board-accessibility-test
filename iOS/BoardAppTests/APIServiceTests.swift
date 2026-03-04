@@ -61,7 +61,7 @@ final class APIServiceTests: XCTestCase {
             Post(id: 1, title: "글 1", content: "내용 1", createdAt: date, updatedAt: date),
             Post(id: 2, title: "글 2", content: "내용 2", createdAt: date, updatedAt: date)
         ]
-        let pagination = Pagination(page: 1, limit: 10, totalItems: 2, totalPages: 1, hasNext: false, hasPrev: false)
+        let pagination = Pagination(page: 1, limit: 10, total: 2, totalPages: 1)
         let response = PostListResponse(data: posts, pagination: pagination)
         mockService.fetchPostsResult = .success(response)
 
@@ -71,7 +71,7 @@ final class APIServiceTests: XCTestCase {
         XCTAssertEqual(mockService.lastFetchPostsPage, 1)
         XCTAssertEqual(mockService.lastFetchPostsLimit, 10)
         XCTAssertEqual(result.data.count, 2)
-        XCTAssertEqual(result.pagination.totalItems, 2)
+        XCTAssertEqual(result.pagination.total, 2)
     }
 
     func testFetchPostSuccess() async throws {

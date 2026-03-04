@@ -65,8 +65,7 @@ struct SinglePostCreateContent: View {
         Task {
             do {
                 try await viewModel.createPost(title: title, content: content)
-                await viewModel.refreshPosts()
-                viewModel.navigateBack()
+                viewModel.navigateBack(shouldRefresh: true)
             } catch {
                 errorMessage = error.localizedDescription
                 isSubmitting = false

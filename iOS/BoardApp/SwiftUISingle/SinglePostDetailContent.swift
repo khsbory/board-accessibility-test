@@ -50,8 +50,7 @@ struct SinglePostDetailContent: View {
                     if case .detail(let postId) = viewModel.currentScreen {
                         do {
                             try await viewModel.deletePost(id: postId)
-                            await viewModel.refreshPosts()
-                            viewModel.navigateBack()
+                            viewModel.navigateBack(shouldRefresh: true)
                         } catch {
                             errorMessage = error.localizedDescription
                         }

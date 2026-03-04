@@ -27,7 +27,13 @@ final class SinglePostListVC: UIViewController {
         tableView.translatesAutoresizingMaskIntoConstraints = false
         tableView.dataSource = self
         tableView.delegate = self
+        tableView.prefetchDataSource = self
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "Cell")
+
+        let refreshControl = UIRefreshControl()
+        refreshControl.addTarget(self, action: #selector(handlePullToRefresh), for: .valueChanged)
+        tableView.refreshControl = refreshControl
+
         view.addSubview(tableView)
 
         NSLayoutConstraint.activate([
@@ -80,19 +86,53 @@ final class SinglePostListVC: UIViewController {
                     self.hasNextPage = response.pagination.hasNext
                     self.tableView.reloadData()
                     self.activityIndicator.stopAnimating()
+                    self.tableView.refreshControl?.endRefreshing()
                     self.isLoading = false
+                    self.loadMoreIfNeeded()
                 }
             } catch {
                 await MainActor.run {
                     self.activityIndicator.stopAnimating()
+                    self.tableView.refreshControl?.endRefreshing()
                     self.isLoading = false
+
+                    let alert = UIAlertController(title: "오류", message: error.localizedDescription, preferredStyle: .alert)
+                    alert.addAction(UIAlertAction(title: "확인", style: .default))
+                    self.present(alert, animated: true)
                 }
+            }
+        }
+    }
+
+    /// Auto-load next page if content does not fill the visible area
+    private func loadMoreIfNeeded() {
+        guard hasNextPage, !isLoading else { return }
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            if self.tableView.contentSize.height <= self.tableView.frame.height {
+                self.currentPage += 1
+                self.loadPosts()
             }
         }
     }
 
     @objc private func createButtonTapped() {
         delegate?.navigateToCreate()
+    }
+
+    @objc private func handlePullToRefresh() {
+        reloadData()
+    }
+
+    /// Resets pagination state and reloads posts from the first page.
+    /// Called externally by ContainerViewController after create/delete operations.
+    func reloadData() {
+        currentPage = 1
+        hasNextPage = false
+        isLoading = false
+        posts.removeAll()
+        tableView.reloadData()
+        loadPosts()
     }
 }
 
@@ -129,9 +169,25 @@ extension SinglePostListVC: UITableViewDelegate {
         let contentHeight = scrollView.contentSize.height
         let height = scrollView.frame.size.height
 
-        if offsetY > contentHeight - height - 100, hasNextPage, !isLoading {
+        // Trigger when user scrolls within 200pt of the bottom
+        guard contentHeight > height else { return }
+        if offsetY > contentHeight - height - 200, hasNextPage, !isLoading {
             currentPage += 1
             loadPosts()
+        }
+    }
+}
+
+// MARK: - UITableViewDataSourcePrefetching
+extension SinglePostListVC: UITableViewDataSourcePrefetching {
+    func tableView(_ tableView: UITableView, prefetchRowsAt indexPaths: [IndexPath]) {
+        // Trigger pagination when prefetching rows near the end
+        guard hasNextPage, !isLoading else { return }
+        let threshold = max(posts.count - 3, 0)
+        for indexPath in indexPaths where indexPath.row >= threshold {
+            currentPage += 1
+            loadPosts()
+            break
         }
     }
 }

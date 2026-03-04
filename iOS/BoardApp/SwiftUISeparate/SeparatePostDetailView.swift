@@ -3,7 +3,7 @@ import SwiftUI
 struct SeparatePostDetailView: View {
     let viewModel: SeparateViewModel
     let postId: Int
-    @Binding var path: NavigationPath
+    @Environment(\.dismiss) private var dismiss
 
     @State private var post: Post?
     @State private var isLoading = true
@@ -65,7 +65,7 @@ struct SeparatePostDetailView: View {
                     do {
                         try await viewModel.deletePost(id: postId)
                         await viewModel.refreshPosts()
-                        path = NavigationPath()
+                        dismiss()
                     } catch {
                         errorMessage = error.localizedDescription
                     }
