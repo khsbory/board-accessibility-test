@@ -12,6 +12,9 @@ final class PostListViewController: UIViewController {
     private var hasNextPage = false
     private var isLoading = false
     private var needsRefreshOnAppear = false
+    private var lastSelectedPostId: Int?
+    private var neighborPostIds: (previous: Int?, next: Int?)?
+    private var wasPostDeleted = false
 
     var onDismiss: (() -> Void)?
 
@@ -48,6 +51,54 @@ final class PostListViewController: UIViewController {
 
     @objc private func dismissToHome() {
         onDismiss?()
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+
+        guard let postId = lastSelectedPostId else { return }
+        lastSelectedPostId = nil
+        let neighbors = neighborPostIds
+        neighborPostIds = nil
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            guard let self = self else { return }
+
+            if self.wasPostDeleted {
+                self.wasPostDeleted = false
+                // 삭제된 경우: 이전 이웃 > 다음 이웃 > 작성 버튼
+                let targetIndex: Int?
+                if let prevId = neighbors?.previous,
+                   let idx = self.posts.firstIndex(where: { $0.id == prevId }) {
+                    targetIndex = idx
+                } else if let nextId = neighbors?.next,
+                          let idx = self.posts.firstIndex(where: { $0.id == nextId }) {
+                    targetIndex = idx
+                } else {
+                    targetIndex = nil
+                }
+
+                if let idx = targetIndex {
+                    let indexPath = IndexPath(row: idx, section: 0)
+                    self.tableView.scrollToRow(at: indexPath, at: .middle, animated: false)
+                    if let cell = self.tableView.cellForRow(at: indexPath) {
+                        UIAccessibility.post(notification: .layoutChanged, argument: cell)
+                    }
+                } else {
+                    UIAccessibility.post(notification: .layoutChanged, argument: self.createButton)
+                }
+            } else {
+                // 삭제 안 된 경우: id로 현재 인덱스 찾기
+                if let idx = self.posts.firstIndex(where: { $0.id == postId }) {
+                    let indexPath = IndexPath(row: idx, section: 0)
+                    self.tableView.scrollToRow(at: indexPath, at: .middle, animated: false)
+                    if let cell = self.tableView.cellForRow(at: indexPath) {
+                        UIAccessibility.post(notification: .layoutChanged, argument: cell)
+                    }
+                }
+                // 못 찾으면 (페이지네이션 리셋 등) 조용히 스킵
+            }
+        }
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -193,6 +244,7 @@ extension PostListViewController: UITableViewDataSource {
             return UITableViewCell()
         }
         cell.configure(with: posts[indexPath.row])
+        cell.accessibilityTraits = .button
         return cell
     }
 }
@@ -202,8 +254,15 @@ extension PostListViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         let post = posts[indexPath.row]
+        lastSelectedPostId = post.id
+        wasPostDeleted = false
+        neighborPostIds = (
+            previous: indexPath.row > 0 ? posts[indexPath.row - 1].id : nil,
+            next: indexPath.row < posts.count - 1 ? posts[indexPath.row + 1].id : nil
+        )
         let detailVC = PostDetailViewController(postId: post.id)
         detailVC.onPostDeleted = { [weak self] in
+            self?.wasPostDeleted = true
             self?.needsRefreshOnAppear = true
         }
         navigationController?.pushViewController(detailVC, animated: true)
