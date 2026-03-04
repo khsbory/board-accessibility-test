@@ -136,6 +136,56 @@ final class ContainerViewController: UIViewController {
                 listVC.refreshData()
             }
         }
+
+        restoreAccessibilityFocus()
+    }
+
+    // MARK: - VoiceOver 접근성 초점 복원
+    private func restoreAccessibilityFocus() {
+        guard let listVC = listVC, let postId = listVC.lastSelectedPostId else { return }
+        listVC.lastSelectedPostId = nil
+        let neighbors = listVC.neighborPostIds
+        listVC.neighborPostIds = nil
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            guard let self = self, let listVC = self.listVC else { return }
+
+            if listVC.wasPostDeleted {
+                listVC.wasPostDeleted = false
+                // 삭제된 경우: 이전 이웃 > 다음 이웃 > 작성 버튼
+                let targetIndex: Int?
+                if let prevId = neighbors?.previous,
+                   let idx = listVC.posts.firstIndex(where: { $0.id == prevId }) {
+                    targetIndex = idx
+                } else if let nextId = neighbors?.next,
+                          let idx = listVC.posts.firstIndex(where: { $0.id == nextId }) {
+                    targetIndex = idx
+                } else {
+                    targetIndex = nil
+                }
+
+                if let idx = targetIndex {
+                    let indexPath = IndexPath(row: idx, section: 0)
+                    listVC.tableView.scrollToRow(at: indexPath, at: .middle, animated: false)
+                    if let cell = listVC.tableView.cellForRow(at: indexPath) {
+                        UIAccessibility.post(notification: .layoutChanged, argument: cell)
+                    }
+                } else {
+                    // 게시글이 없으면 작성 버튼으로 초점
+                    UIAccessibility.post(notification: .layoutChanged, argument: listVC.createButton)
+                }
+            } else {
+                // 삭제 안 된 경우: id로 현재 인덱스 찾기
+                if let idx = listVC.posts.firstIndex(where: { $0.id == postId }) {
+                    let indexPath = IndexPath(row: idx, section: 0)
+                    listVC.tableView.scrollToRow(at: indexPath, at: .middle, animated: false)
+                    if let cell = listVC.tableView.cellForRow(at: indexPath) {
+                        UIAccessibility.post(notification: .layoutChanged, argument: cell)
+                    }
+                }
+                // 못 찾으면 (페이지네이션 리셋 등) 조용히 스킵
+            }
+        }
     }
 
     @objc private func backButtonTapped() {
@@ -173,6 +223,7 @@ extension ContainerViewController: ContainerNavigationDelegate {
 
     func refreshList() {
         // 작성/삭제 후에는 무조건 새로고침
+        listVC?.wasPostDeleted = true
         listVC?.refreshData()
         showList(animated: true)
     }

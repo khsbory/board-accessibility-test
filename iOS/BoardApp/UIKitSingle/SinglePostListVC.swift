@@ -5,14 +5,19 @@ final class SinglePostListVC: UIViewController {
     weak var delegate: ContainerNavigationDelegate?
 
     let tableView = UITableView(frame: .zero, style: .plain)
-    private let createButton = UIButton(type: .system)
+    let createButton = UIButton(type: .system)
     private let activityIndicator = UIActivityIndicatorView(style: .large)
 
     private let apiService: APIServiceProtocol = APIService.shared
-    private var posts: [Post] = []
+    private(set) var posts: [Post] = []
     private var currentPage = 1
     private var hasNextPage = false
     private var isLoading = false
+
+    // MARK: - VoiceOver 접근성 초점 추적
+    var lastSelectedPostId: Int?
+    var neighborPostIds: (previous: Int?, next: Int?)?
+    var wasPostDeleted = false
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -152,6 +157,7 @@ extension SinglePostListVC: UITableViewDataSource {
         formatter.locale = Locale(identifier: "ko_KR")
         config.secondaryText = formatter.string(from: post.createdAt)
         cell.contentConfiguration = config
+        cell.accessibilityTraits = .button
         return cell
     }
 }
@@ -160,7 +166,14 @@ extension SinglePostListVC: UITableViewDataSource {
 extension SinglePostListVC: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        delegate?.navigateToDetail(postId: posts[indexPath.row].id)
+        let post = posts[indexPath.row]
+        lastSelectedPostId = post.id
+        wasPostDeleted = false
+        neighborPostIds = (
+            previous: indexPath.row > 0 ? posts[indexPath.row - 1].id : nil,
+            next: indexPath.row < posts.count - 1 ? posts[indexPath.row + 1].id : nil
+        )
+        delegate?.navigateToDetail(postId: post.id)
     }
 
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
