@@ -68,7 +68,7 @@ struct SeparatePostCreateView: View {
         Task {
             do {
                 try await viewModel.createPost(title: title, content: content)
-                await viewModel.refreshPosts()
+                viewModel.needsForceRefresh = true
                 dismiss()
             } catch {
                 errorMessage = error.localizedDescription

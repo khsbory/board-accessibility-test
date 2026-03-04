@@ -6,7 +6,7 @@ struct SinglePostListContent: View {
     var body: some View {
         ZStack {
             List {
-                ForEach(viewModel.posts) { post in
+                ForEach(Array(viewModel.posts.enumerated()), id: \.element.id) { index, post in
                     Button {
                         viewModel.navigateToDetail(postId: post.id)
                     } label: {
@@ -21,8 +21,18 @@ struct SinglePostListContent: View {
                         .padding(.vertical, 4)
                     }
                     .onAppear {
+                        // 첫 번째 게시글 가시성 추적 (스크롤 위치 판단용)
+                        if index == 0 {
+                            viewModel.isFirstPostVisible = true
+                        }
+                        // 페이지네이션
                         Task {
                             await viewModel.loadNextPageIfNeeded(currentPost: post)
+                        }
+                    }
+                    .onDisappear {
+                        if index == 0 {
+                            viewModel.isFirstPostVisible = false
                         }
                     }
                 }
@@ -32,7 +42,7 @@ struct SinglePostListContent: View {
                 await viewModel.refreshPosts()
             }
 
-            if viewModel.isLoading && viewModel.posts.isEmpty {
+            if viewModel.isLoadingPage && viewModel.posts.isEmpty {
                 ProgressView()
             }
         }

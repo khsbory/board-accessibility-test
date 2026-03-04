@@ -72,6 +72,19 @@ struct SingleBoardView: View {
                         ))
                 }
             }
+            .onChange(of: viewModel.currentScreen) { oldValue, newValue in
+                // 목록 화면으로 돌아올 때 조건부 새로고침
+                if newValue == .list && oldValue != .list {
+                    if viewModel.needsForceRefresh {
+                        // 작성/삭제 후 강제 새로고침
+                        viewModel.needsForceRefresh = false
+                        Task { await viewModel.refreshPosts() }
+                    } else if viewModel.isFirstPostVisible {
+                        // 스크롤이 상단에 있을 때만 새로고침
+                        Task { await viewModel.refreshPosts() }
+                    }
+                }
+            }
         }
         .navigationBarHidden(true)
         .task {

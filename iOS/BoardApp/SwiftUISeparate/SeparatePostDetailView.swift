@@ -64,7 +64,7 @@ struct SeparatePostDetailView: View {
                 Task {
                     do {
                         try await viewModel.deletePost(id: postId)
-                        await viewModel.refreshPosts()
+                        viewModel.needsForceRefresh = true
                         dismiss()
                     } catch {
                         errorMessage = error.localizedDescription

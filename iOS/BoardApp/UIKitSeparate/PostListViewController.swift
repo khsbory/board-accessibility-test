@@ -11,6 +11,7 @@ final class PostListViewController: UIViewController {
     private var currentPage = 1
     private var hasNextPage = false
     private var isLoading = false
+    private var needsRefreshOnAppear = false
 
     var onDismiss: (() -> Void)?
 
@@ -31,6 +32,7 @@ final class PostListViewController: UIViewController {
         setupTableView()
         setupCreateButton()
         setupActivityIndicator()
+        loadPosts()
     }
 
     private func setupHomeButton() {
@@ -50,7 +52,16 @@ final class PostListViewController: UIViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        refreshPosts()
+        if needsRefreshOnAppear {
+            needsRefreshOnAppear = false
+            refreshPosts()
+        } else {
+            // 스크롤이 상단 근처일 때만 자동 새로고침
+            let isNearTop = tableView.contentOffset.y <= 44
+            if isNearTop {
+                refreshPosts()
+            }
+        }
     }
 
     private func setupTableView() {
@@ -102,7 +113,7 @@ final class PostListViewController: UIViewController {
         ])
     }
 
-    private func loadPosts() {
+    private func loadPosts(replacing: Bool = false) {
         guard !isLoading else { return }
         isLoading = true
         activityIndicator.startAnimating()
@@ -111,8 +122,13 @@ final class PostListViewController: UIViewController {
             do {
                 let response = try await apiService.fetchPosts(page: currentPage, limit: 10)
                 await MainActor.run {
-                    self.posts.append(contentsOf: response.data)
+                    if replacing {
+                        self.posts = response.data
+                    } else {
+                        self.posts.append(contentsOf: response.data)
+                    }
                     self.hasNextPage = response.pagination.hasNext
+                    self.currentPage += 1
                     self.tableView.reloadData()
                     self.activityIndicator.stopAnimating()
                     self.tableView.refreshControl?.endRefreshing()
@@ -137,7 +153,6 @@ final class PostListViewController: UIViewController {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             if self.tableView.contentSize.height <= self.tableView.frame.height {
-                self.currentPage += 1
                 self.loadPosts()
             }
         }
@@ -145,8 +160,7 @@ final class PostListViewController: UIViewController {
 
     private func refreshPosts() {
         currentPage = 1
-        posts = []
-        loadPosts()
+        loadPosts(replacing: true)
     }
 
     private func showError(_ error: Error) {
@@ -162,7 +176,7 @@ final class PostListViewController: UIViewController {
     @objc private func createButtonTapped() {
         let createVC = PostCreateViewController()
         createVC.onPostCreated = { [weak self] in
-            self?.refreshPosts()
+            self?.needsRefreshOnAppear = true
         }
         navigationController?.pushViewController(createVC, animated: true)
     }
@@ -190,7 +204,7 @@ extension PostListViewController: UITableViewDelegate {
         let post = posts[indexPath.row]
         let detailVC = PostDetailViewController(postId: post.id)
         detailVC.onPostDeleted = { [weak self] in
-            self?.refreshPosts()
+            self?.needsRefreshOnAppear = true
         }
         navigationController?.pushViewController(detailVC, animated: true)
     }
@@ -203,7 +217,6 @@ extension PostListViewController: UITableViewDelegate {
         // Trigger when user scrolls within 200pt of the bottom
         guard contentHeight > height else { return }
         if offsetY > contentHeight - height - 200, hasNextPage, !isLoading {
-            currentPage += 1
             loadPosts()
         }
     }
@@ -216,7 +229,6 @@ extension PostListViewController: UITableViewDataSourcePrefetching {
         guard hasNextPage, !isLoading else { return }
         let threshold = max(posts.count - 3, 0)
         for indexPath in indexPaths where indexPath.row >= threshold {
-            currentPage += 1
             loadPosts()
             break
         }

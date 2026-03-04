@@ -19,11 +19,14 @@ enum SingleScreenState: Equatable {
 @Observable
 final class SingleViewModel {
     var posts: [Post] = []
-    var isLoading = false
+    var isLoadingPage = false      // 페이지네이션용 (기존 isLoading 대체)
+    var isRefreshing = false       // 새로고침용
     var errorMessage: String?
     var currentPage = 1
     var hasNextPage = false
     var currentScreen: SingleScreenState = .list
+    var isFirstPostVisible = true  // 스크롤 위치 추적 (첫 게시글 가시성)
+    var needsForceRefresh = false  // 작성/삭제 후 강제 새로고침 플래그
 
     // Detail state
     var detailPost: Post?
@@ -48,8 +51,8 @@ final class SingleViewModel {
     }
 
     func loadPosts() async {
-        guard !isLoading else { return }
-        isLoading = true
+        guard !isLoadingPage else { return }
+        isLoadingPage = true
         errorMessage = nil
 
         do {
@@ -59,7 +62,7 @@ final class SingleViewModel {
         } catch {
             errorMessage = error.localizedDescription
         }
-        isLoading = false
+        isLoadingPage = false
     }
 
     /// Auto-load additional pages until the list has enough items to be scrollable.
@@ -68,15 +71,15 @@ final class SingleViewModel {
         await loadPosts()
         // If the first page loaded and there are more pages, preload one more page
         // to ensure the list is scrollable so .onAppear can trigger further pagination.
-        if hasNextPage && !isLoading && posts.count <= 10 {
+        if hasNextPage && !isLoadingPage && posts.count <= 10 {
             currentPage += 1
             await loadPosts()
         }
     }
 
     func refreshPosts() async {
-        guard !isLoading else { return }
-        isLoading = true
+        guard !isRefreshing else { return }
+        isRefreshing = true
         errorMessage = nil
 
         do {
@@ -99,11 +102,11 @@ final class SingleViewModel {
         } catch {
             errorMessage = error.localizedDescription
         }
-        isLoading = false
+        isRefreshing = false
     }
 
     func loadNextPageIfNeeded(currentPost: Post) async {
-        guard hasNextPage, !isLoading else { return }
+        guard hasNextPage, !isLoadingPage else { return }
         // Trigger when the displayed item is within the last 3 items
         guard let index = posts.firstIndex(where: { $0.id == currentPost.id }) else { return }
         let threshold = max(posts.count - 3, 0)
@@ -128,10 +131,14 @@ final class SingleViewModel {
     func navigateBack(shouldRefresh: Bool = false) {
         withAnimationCompat {
             currentScreen = .list
-            detailPost = nil
+            // detailPost = nil은 여기서 하지 않음 (퇴장 애니메이션 중 빈 화면 방지)
+        }
+        // 애니메이션 완료 후 정리
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
+            self?.detailPost = nil
         }
         if shouldRefresh {
-            Task { await refreshPosts() }
+            needsForceRefresh = true
         }
     }
 

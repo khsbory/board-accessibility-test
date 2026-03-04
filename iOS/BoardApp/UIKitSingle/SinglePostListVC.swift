@@ -4,7 +4,7 @@ final class SinglePostListVC: UIViewController {
 
     weak var delegate: ContainerNavigationDelegate?
 
-    private let tableView = UITableView(frame: .zero, style: .plain)
+    let tableView = UITableView(frame: .zero, style: .plain)
     private let createButton = UIButton(type: .system)
     private let activityIndicator = UIActivityIndicatorView(style: .large)
 
@@ -73,7 +73,7 @@ final class SinglePostListVC: UIViewController {
         ])
     }
 
-    private func loadPosts() {
+    private func loadPosts(replacing: Bool = false) {
         guard !isLoading else { return }
         isLoading = true
         activityIndicator.startAnimating()
@@ -82,12 +82,17 @@ final class SinglePostListVC: UIViewController {
             do {
                 let response = try await apiService.fetchPosts(page: currentPage, limit: 10)
                 await MainActor.run {
-                    self.posts.append(contentsOf: response.data)
+                    if replacing {
+                        self.posts = response.data
+                    } else {
+                        self.posts.append(contentsOf: response.data)
+                    }
                     self.hasNextPage = response.pagination.hasNext
+                    self.currentPage += 1
+                    self.isLoading = false
                     self.tableView.reloadData()
                     self.activityIndicator.stopAnimating()
                     self.tableView.refreshControl?.endRefreshing()
-                    self.isLoading = false
                     self.loadMoreIfNeeded()
                 }
             } catch {
@@ -95,10 +100,6 @@ final class SinglePostListVC: UIViewController {
                     self.activityIndicator.stopAnimating()
                     self.tableView.refreshControl?.endRefreshing()
                     self.isLoading = false
-
-                    let alert = UIAlertController(title: "오류", message: error.localizedDescription, preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: "확인", style: .default))
-                    self.present(alert, animated: true)
                 }
             }
         }
@@ -110,7 +111,6 @@ final class SinglePostListVC: UIViewController {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             if self.tableView.contentSize.height <= self.tableView.frame.height {
-                self.currentPage += 1
                 self.loadPosts()
             }
         }
@@ -121,18 +121,17 @@ final class SinglePostListVC: UIViewController {
     }
 
     @objc private func handlePullToRefresh() {
-        reloadData()
+        refreshData()
     }
 
     /// Resets pagination state and reloads posts from the first page.
+    /// Uses atomic swap: keeps current data visible until new data arrives.
     /// Called externally by ContainerViewController after create/delete operations.
-    func reloadData() {
+    func refreshData() {
         currentPage = 1
         hasNextPage = false
         isLoading = false
-        posts.removeAll()
-        tableView.reloadData()
-        loadPosts()
+        loadPosts(replacing: true)
     }
 }
 
@@ -172,7 +171,6 @@ extension SinglePostListVC: UITableViewDelegate {
         // Trigger when user scrolls within 200pt of the bottom
         guard contentHeight > height else { return }
         if offsetY > contentHeight - height - 200, hasNextPage, !isLoading {
-            currentPage += 1
             loadPosts()
         }
     }
@@ -185,7 +183,6 @@ extension SinglePostListVC: UITableViewDataSourcePrefetching {
         guard hasNextPage, !isLoading else { return }
         let threshold = max(posts.count - 3, 0)
         for indexPath in indexPaths where indexPath.row >= threshold {
-            currentPage += 1
             loadPosts()
             break
         }

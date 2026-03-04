@@ -8,6 +8,8 @@ final class SeparateViewModel {
     var errorMessage: String?
     var currentPage = 1
     var hasNextPage = false
+    var isFirstPostVisible = true   // 첫 번째 게시글이 화면에 보이는지 (상단 여부 판단)
+    var needsForceRefresh = false   // 작성/삭제 후 강제 새로고침 플래그
 
     private let apiService: APIServiceProtocol
 

@@ -128,6 +128,14 @@ final class ContainerViewController: UIViewController {
             listVC = vc
         }
         transition(to: listVC!, forward: false, animated: animated)
+
+        // 스크롤이 상단 근처일 때만 자동 새로고침
+        if let listVC = listVC {
+            let isNearTop = listVC.tableView.contentOffset.y <= 44
+            if isNearTop {
+                listVC.refreshData()
+            }
+        }
     }
 
     @objc private func backButtonTapped() {
@@ -164,7 +172,8 @@ extension ContainerViewController: ContainerNavigationDelegate {
     }
 
     func refreshList() {
-        listVC?.reloadData()
+        // 작성/삭제 후에는 무조건 새로고침
+        listVC?.refreshData()
         showList(animated: true)
     }
 }

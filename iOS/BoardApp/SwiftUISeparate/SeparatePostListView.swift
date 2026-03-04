@@ -7,7 +7,7 @@ struct SeparatePostListView: View {
     var body: some View {
         ZStack {
             List {
-                ForEach(viewModel.posts) { post in
+                ForEach(Array(viewModel.posts.enumerated()), id: \.element.id) { index, post in
                     NavigationLink(value: AppRoute.separateDetail(post.id)) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(post.title)
@@ -20,8 +20,16 @@ struct SeparatePostListView: View {
                         .padding(.vertical, 4)
                     }
                     .onAppear {
+                        if index == 0 {
+                            viewModel.isFirstPostVisible = true
+                        }
                         Task {
                             await viewModel.loadNextPageIfNeeded(currentPost: post)
+                        }
+                    }
+                    .onDisappear {
+                        if index == 0 {
+                            viewModel.isFirstPostVisible = false
                         }
                     }
                 }
@@ -29,6 +37,16 @@ struct SeparatePostListView: View {
             .listStyle(.plain)
             .refreshable {
                 await viewModel.refreshPosts()
+            }
+            .onAppear {
+                // 상세에서 뒤로 돌아왔을 때 조건부 새로고침
+                guard !viewModel.posts.isEmpty else { return }
+                if viewModel.needsForceRefresh {
+                    viewModel.needsForceRefresh = false
+                    Task { await viewModel.refreshPosts() }
+                } else if viewModel.isFirstPostVisible {
+                    Task { await viewModel.refreshPosts() }
+                }
             }
 
             if viewModel.isLoading && viewModel.posts.isEmpty {
