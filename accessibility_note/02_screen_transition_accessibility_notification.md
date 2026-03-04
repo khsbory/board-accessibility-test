@@ -96,3 +96,7 @@ override func viewDidAppear(_ animated: Bool) {
 - `iOS/BoardApp/UIKitSeparate/PostDetailViewController.swift` — 상세 진입 시 제목으로 초점
 - `iOS/BoardApp/UIKitSingle/ContainerViewController.swift` — 단일 화면 목록 복귀 시 초점 복원
 - `iOS/BoardApp/UIKitSingle/SinglePostDetailVC.swift` — 단일 화면 상세 진입 시 제목으로 초점
+
+## 성능 고려사항
+
+위 적용 코드는 모두 `DispatchWorkItem` 패턴을 사용하여 타이머 취소가 가능하며, `UIAccessibility.isVoiceOverRunning` 체크와 `view.window != nil` 체크를 포함합니다. 자세한 내용은 [01_uikit_viewcontroller_focus_management.md](./01_uikit_viewcontroller_focus_management.md)의 "성능 및 안정성 개선" 섹션을 참조하세요.

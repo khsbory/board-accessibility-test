@@ -14,6 +14,16 @@ final class SinglePostDetailVC: UIViewController {
 
     private let apiService: APIServiceProtocol = APIService.shared
     private let postId: Int
+    private var accessibilityWorkItem: DispatchWorkItem?
+    private var hasRestoredFocus = false
+
+    private static let dateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateStyle = .long
+        f.timeStyle = .short
+        f.locale = Locale(identifier: "ko_KR")
+        return f
+    }()
 
     init(postId: Int) {
         self.postId = postId
@@ -34,10 +44,23 @@ final class SinglePostDetailVC: UIViewController {
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-            guard let self = self else { return }
+        guard !hasRestoredFocus else { return }
+        hasRestoredFocus = true
+
+        accessibilityWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self = self,
+                  self.view.window != nil,
+                  UIAccessibility.isVoiceOverRunning else { return }
             UIAccessibility.post(notification: .screenChanged, argument: self.titleLabel)
         }
+        accessibilityWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: workItem)
+    }
+
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        accessibilityWorkItem?.cancel()
     }
 
     private func setupUI() {
@@ -102,11 +125,7 @@ final class SinglePostDetailVC: UIViewController {
                 let post = try await apiService.fetchPost(id: postId)
                 await MainActor.run {
                     titleLabel.text = post.title
-                    let formatter = DateFormatter()
-                    formatter.dateStyle = .long
-                    formatter.timeStyle = .short
-                    formatter.locale = Locale(identifier: "ko_KR")
-                    dateLabel.text = formatter.string(from: post.createdAt)
+                    dateLabel.text = Self.dateFormatter.string(from: post.createdAt)
                     contentLabel.text = post.content
                     contentStack.isHidden = false
                     activityIndicator.stopAnimating()

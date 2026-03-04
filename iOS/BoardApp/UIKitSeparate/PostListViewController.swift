@@ -15,6 +15,7 @@ final class PostListViewController: UIViewController {
     private var lastSelectedPostId: Int?
     private var neighborPostIds: (previous: Int?, next: Int?)?
     private var wasPostDeleted = false
+    private var accessibilityWorkItem: DispatchWorkItem?
 
     var onDismiss: (() -> Void)?
 
@@ -61,8 +62,11 @@ final class PostListViewController: UIViewController {
         let neighbors = neighborPostIds
         neighborPostIds = nil
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-            guard let self = self else { return }
+        accessibilityWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self = self,
+                  self.view.window != nil,
+                  UIAccessibility.isVoiceOverRunning else { return }
 
             if self.wasPostDeleted {
                 self.wasPostDeleted = false
@@ -99,6 +103,13 @@ final class PostListViewController: UIViewController {
                 // 못 찾으면 (페이지네이션 리셋 등) 조용히 스킵
             }
         }
+        accessibilityWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: workItem)
+    }
+
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        accessibilityWorkItem?.cancel()
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -333,12 +344,16 @@ final class PostCell: UITableViewCell {
         ])
     }
 
+    private static let dateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateStyle = .medium
+        f.timeStyle = .short
+        f.locale = Locale(identifier: "ko_KR")
+        return f
+    }()
+
     func configure(with post: Post) {
         titleLabel.text = post.title
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
-        formatter.locale = Locale(identifier: "ko_KR")
-        dateLabel.text = formatter.string(from: post.createdAt)
+        dateLabel.text = Self.dateFormatter.string(from: post.createdAt)
     }
 }

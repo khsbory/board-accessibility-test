@@ -14,6 +14,14 @@ final class SinglePostListVC: UIViewController {
     private var hasNextPage = false
     private var isLoading = false
 
+    private static let dateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateStyle = .medium
+        f.timeStyle = .short
+        f.locale = Locale(identifier: "ko_KR")
+        return f
+    }()
+
     // MARK: - VoiceOver 접근성 초점 추적
     var lastSelectedPostId: Int?
     var neighborPostIds: (previous: Int?, next: Int?)?
@@ -151,11 +159,7 @@ extension SinglePostListVC: UITableViewDataSource {
         let post = posts[indexPath.row]
         var config = cell.defaultContentConfiguration()
         config.text = post.title
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
-        formatter.locale = Locale(identifier: "ko_KR")
-        config.secondaryText = formatter.string(from: post.createdAt)
+        config.secondaryText = Self.dateFormatter.string(from: post.createdAt)
         cell.contentConfiguration = config
         cell.accessibilityTraits = .button
         return cell

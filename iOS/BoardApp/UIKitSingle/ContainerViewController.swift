@@ -4,6 +4,7 @@ final class ContainerViewController: UIViewController {
 
     private var currentChild: UIViewController?
     private var listVC: SinglePostListVC?
+    private var accessibilityWorkItem: DispatchWorkItem?
     private let customNavBar = UIView()
     private let navTitleLabel = UILabel()
     private let backButton = UIButton(type: .system)
@@ -147,8 +148,12 @@ final class ContainerViewController: UIViewController {
         let neighbors = listVC.neighborPostIds
         listVC.neighborPostIds = nil
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-            guard let self = self, let listVC = self.listVC else { return }
+        accessibilityWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self = self,
+                  self.view.window != nil,
+                  UIAccessibility.isVoiceOverRunning,
+                  let listVC = self.listVC else { return }
 
             if listVC.wasPostDeleted {
                 listVC.wasPostDeleted = false
@@ -186,6 +191,8 @@ final class ContainerViewController: UIViewController {
                 // 못 찾으면 (페이지네이션 리셋 등) 조용히 스킵
             }
         }
+        accessibilityWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: workItem)
     }
 
     @objc private func backButtonTapped() {
@@ -200,6 +207,7 @@ final class ContainerViewController: UIViewController {
 // MARK: - ContainerNavigationDelegate
 extension ContainerViewController: ContainerNavigationDelegate {
     func navigateToDetail(postId: Int) {
+        accessibilityWorkItem?.cancel()
         navTitleLabel.text = "게시글 상세"
         homeButton.isHidden = true
         backButton.isHidden = false
@@ -209,6 +217,7 @@ extension ContainerViewController: ContainerNavigationDelegate {
     }
 
     func navigateToCreate() {
+        accessibilityWorkItem?.cancel()
         navTitleLabel.text = "게시글 작성"
         homeButton.isHidden = true
         backButton.isHidden = false
